@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/robertkrimen/otto/ast"
-	"github.com/robertkrimen/otto/file"
 	"github.com/robertkrimen/otto/parser"
 )
 
@@ -16,19 +15,25 @@ func (extracted *ExtractedStrings) Enter(n ast.Node) (v ast.Visitor) {
 	return extracted
 }
 
-func (extracted *ExtractedStrings) Exit(n ast.Node) {}
+func (extracted *ExtractedStrings) Exit(ast.Node) {}
 
-func FindStringsParsing(filePath string) (*ExtractedStrings, error) {
-	fileset := file.FileSet{}
-
-	program, err := parser.ParseFile(&fileset, filePath, nil, 0)
-
+func handleParsingResult(program *ast.Program, err error) (*ExtractedStrings, error) {
 	if err != nil && program == nil {
-		return nil, fmt.Errorf("error parsing file: %s", err)
+		return nil, fmt.Errorf("parse error: %s", err)
 	}
 
 	e := ExtractedStrings{}
 	ast.Walk(&e, program)
 
 	return &e, err
+}
+
+func FindStringsParsing(fileString string) (*ExtractedStrings, error) {
+	program, err := parser.ParseFile(nil, "", fileString, 0)
+	return handleParsingResult(program, err)
+}
+
+func FindStringsParsingFile(filePath string) (*ExtractedStrings, error) {
+	program, err := parser.ParseFile(nil, filePath, nil, 0)
+	return handleParsingResult(program, err)
 }

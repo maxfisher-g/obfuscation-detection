@@ -2,11 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
 )
-
-const malicious = "/home/maxfisher/obfuscation-detection/malicious.js"
-const simple = "/home/maxfisher/obfuscation-detection/simple.js"
-const filePath = malicious
 
 // TODO
 //  entropy of function names
@@ -15,11 +12,17 @@ const filePath = malicious
 //  analysis of numeric arrays (entropy)
 
 func main() {
-	println("obfuscation-detection")
+	if len(os.Args) < 2 {
+		fmt.Printf("Usage: %s <filename.js>\n", os.Args[0])
+		return
+	}
 
-	extracted, err := FindStrings(filePath, parsing)
+	filePath := os.Args[1]
 
-	if err == nil {
+	extractMethod := parsingFile
+	extracted, err := FindStrings(filePath, extractMethod)
+
+	if err != nil {
 		errorType := "Error"
 		if extracted != nil {
 			errorType = "Non-fatal error"
@@ -28,8 +31,11 @@ func main() {
 	}
 
 	if extracted != nil {
-		fmt.Printf("Found %d values: %v\n", len(extracted.strings), extracted.strings)
+		fmt.Printf("Found %d strings in: %s\n", len(extracted.strings), filePath)
+		for _, s := range extracted.strings {
+			println(s)
+		}
 	} else {
-		fmt.Println("Unable to extract strings")
+		fmt.Println("Unable to extract any strings from ", filePath)
 	}
 }
