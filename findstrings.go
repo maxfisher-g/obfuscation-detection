@@ -13,8 +13,7 @@ type ExtractedStrings struct {
 type FindStringsMethod int
 
 const (
-	parsingFile FindStringsMethod = iota
-	parsingString
+	parsing FindStringsMethod = iota
 	stringregexp
 )
 
@@ -27,22 +26,37 @@ func readFile(filePath string) (string, error) {
 	return string(fileBytes), nil
 }
 
-func FindStrings(filePath string, method FindStringsMethod) (*ExtractedStrings, error) {
-	// This case only exists for debug purposes, because apparently
-	// parsing the file worked differently from parsing a string
-	if method == parsingFile {
-		return FindStringsParsingFile(filePath)
+func findStringsParsing(filePath string) (*ExtractedStrings, error) {
+	data, err := RunBabelParsing(filePath)
+	if err != nil && data == nil {
+		return nil, fmt.Errorf("parse error: %s", err)
 	}
 
-	fileString, err := readFile(filePath)
-	if err != nil {
-		return nil, err
+	e := ExtractedStrings{}
+	for _, d := range data.literals {
+		switch d.Type {
+		case "string":
+			e.strings = append(e.strings, d.Value.(string))
+			e.rawLiterals = append(e.rawLiterals, d.RawValue)
+		case "float64":
+		case "bool":
+		default:
+			// do nothing
+		}
 	}
 
+	return &e, err
+}
+
+func findStrings(filePath string, method FindStringsMethod) (*ExtractedStrings, error) {
 	switch method {
-	case parsingString:
-		return FindStringsParsing(fileString)
+	case parsing:
+		return findStringsParsing(filePath)
 	case stringregexp:
+		fileString, err := readFile(filePath)
+		if err != nil {
+			return nil, err
+		}
 		return FindStringsRegexp(fileString)
 	default:
 		panic(fmt.Sprintf("unknown FindStringsMethod %d", method))

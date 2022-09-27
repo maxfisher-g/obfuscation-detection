@@ -19,8 +19,11 @@ func main() {
 
 	filePath := os.Args[1]
 
-	extractMethod := parsingFile
-	extracted, err := FindStrings(filePath, extractMethod)
+	//TestBabelParsing()
+	//return
+
+	extractMethod := parsing
+	extracted, err := findStrings(filePath, extractMethod)
 
 	if err != nil {
 		errorType := "Error"

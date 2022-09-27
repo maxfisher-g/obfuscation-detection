@@ -3,11 +3,39 @@
 
 const parser = require("@babel/parser");
 const fs = require("fs");
-const {parse} = require("@babel/parser");
 
 const printTypes = false;
 
-function walkJs(startNode, printTypes) {
+function locationString(node) {
+    return (node.loc != null) ? `[${node.loc.start.line},${node.loc.start.column}]` : "[]"
+}
+
+const parseOutputLines = []
+
+function logJSON(type, subtype, name, pos, array, extra = null) {
+    const extraValue = (extra !== null) ? `${JSON.stringify(extra)}` : "{}"
+    const arrayValue = (array !== null) ? array : false
+    const json = `{"type":"${type}","subtype":"${subtype}","data":${JSON.stringify(name)},"pos":${pos},` +
+        `"array":${arrayValue}, "extra":${extraValue}}`
+    parseOutputLines.push(json)
+}
+function logIdentifierJSON(subtype, name, pos, extra = null) {
+    logJSON("Identifier", subtype, name, pos, null, extra)
+}
+
+function logLiteralJSON(subtype, value, pos, inArray, extra = null) {
+    logJSON("Literal", subtype, value, pos, inArray, extra)
+}
+
+function multiWalkAst(nodeList, isInArray = false) {
+    if (nodeList !== null) {
+        for (let i = 0; i < nodeList.length; i++) {
+            walkAst(nodeList[i], isInArray)
+        }
+    }
+}
+
+function walkAst(startNode, isInArray = false) {
     // walk the AST and print out any literals
     const n = startNode;
 
@@ -15,74 +43,73 @@ function walkJs(startNode, printTypes) {
         console.log(`# type: ${n.type}`)
     }
 
-
-    const loc = (n.loc != null) ? `[${n.loc.start.line},${n.loc.start.column}]` : "[]"
+    const loc = locationString(n)
     switch (n.type) {
         case "File":
-            walkJs(n.program)
+            walkAst(n.program)
             break
-        case "ExpressionStatement":
-            walkJs(n.expression)
+        case "Program":
+        // fall-through
+        case "BlockStatement":
+            multiWalkAst(n.body, isInArray)
             break
-        case "VariableDeclaration":
-            for (let i = 0; i < n.declarations.length; i++) {
-                walkJs(n.declarations[i])
+        case "ArrowFunctionExpression":
+        // fall-through
+        case "FunctionDeclaration":
+            if (n.id !== null) {
+                logIdentifierJSON("Function", n.id.name, locationString(n.id))
             }
-            break
-        case "VariableDeclarator":
-            walkJs(n.id)
-            walkJs(n.init)
-            break
-        case "Identifier":
-            console.log(`{"type":"Identifier    ","value":"${n.name}","pos":${loc}}`)
-            break
-        case "StringLiteral":
-            console.log(`{"type":"StringLiteral ","value":${JSON.stringify(n.value)},"pos":${loc},"extra":${JSON.stringify(n.extra)}}`)
-            break
-        case "NumericLiteral":
-            console.log(`{"type":"NumericLiteral","value":${JSON.stringify(n.value)},"pos":${loc},"extra":${JSON.stringify(n.extra)}}`)
-            break
-        case "MemberExpression":
-            walkJs(n.object)
-            walkJs(n.property)
-            break
-        case "CallExpression":
-            walkJs(n.callee)
-            //console.log(n.callee)
-            for (let i = 0; i < n.arguments.length; i++) {
-                walkJs(n.arguments[i])
-            }
+            walkAst(n.body)
             break
         case "AwaitExpression":
-            walkJs(n.argument)
+            walkAst(n.argument)
+            break
+        case "AssignmentExpression":
+        // fall-through
+        case "BinaryExpression":
+            walkAst(n.left)
+            walkAst(n.right)
+            break
+        case "ExpressionStatement":
+            walkAst(n.expression)
+            break
+        case "CallExpression":
+            walkAst(n.callee)
+            multiWalkAst(n.arguments, isInArray)
+            break
+        case "MemberExpression":
+            walkAst(n.object)
+            walkAst(n.property)
+            break
+        case "VariableDeclaration":
+            multiWalkAst(n.declarations, isInArray)
+            break
+        case "VariableDeclarator":
+            logIdentifierJSON("Variable", n.id.name, locationString(n.id))
+            walkAst(n.init)
+            break
+        case "Identifier":
+            logJSON("OtherIdentifier", n.name, loc)
+            break
+        case "StringLiteral":
+            logLiteralJSON("String", n.value, loc, isInArray, n.extra)
+            break
+        case "NumericLiteral":
+            logLiteralJSON("Numeric", n.value, loc, isInArray, n.extra)
             break
         case "ArrayExpression":
-            if (n.elements !== null) {
-                for (let i = 0; i < n.elements.length; i++) {
-                    walkJs(n.elements[i])
-                }
-            }
+            multiWalkAst(n.elements, true)
+            break
+        case "TemplateLiteral":
+            multiWalkAst(n.quasis, isInArray)
+            multiWalkAst(n.expressions, isInArray)
+            break
+        case "TemplateElement":
+            logLiteralJSON("StringTemplate", n.value.raw, loc, isInArray, n.value)
             break
         default:
-            if (n.body !== undefined) {
-                if (n.body.length === undefined) {
-                    // FunctionDeclaration
-                    walkJs(n.body)
-                } else {
-                    // Program, BlockStatement
-                    for (let i = 0; i < n.body.length; i++) {
-                        walkJs(n.body[i])
-                    }
-                }
-            } else if (n.left !== undefined && n.right !== undefined) {
-                // BinaryExpression, AssignmentExpression
-                walkJs(n.left)
-                walkJs(n.right)
-            } else {
-                console.log(`Found leaf node of type ${n.type} node @ ${loc}`);
-                console.log(n)
-            }
-
+            console.log(`Found unknown node of type ${n.type} node @ ${loc}`);
+            console.log(n)
     }
 }
 
@@ -91,9 +118,11 @@ function parseAndPrint(filename) {
     const ast = parser.parse(file);
 
     // walk the AST and print out any literals
-    console.log(JSON.stringify(ast, null, "  "));
+    //console.log(JSON.stringify(ast, null, "  "));
 
-    walkJs(ast)
+    walkAst(ast)
+    allJson = "[\n" + parseOutputLines.join(",\n") + "\n]"
+    console.log(allJson)
 }
 
 const filename = process.argv[2];
