@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"regexp"
 	"strings"
 )
@@ -25,7 +26,14 @@ func combineRegexp(regexps ...*regexp.Regexp) *regexp.Regexp {
 
 //goland:noinspection GoUnusedGlobalVariable
 var anyQuotedString = combineRegexp(singleQuotedString, doubleQuotedString, backTickQuotedString)
+
+//goland:noinspection GoUnusedGlobalVariable
 var anyQuotedString2 = combineRegexp(singleQuotedString2, doubleQuotedString2, backTickQuotedString2)
+
+type ExtractedStrings struct {
+	rawLiterals []string
+	strings     []string
+}
 
 func dequote(s string) string {
 	if len(s) <= 2 {
@@ -35,8 +43,8 @@ func dequote(s string) string {
 	}
 }
 
-func FindStringsRegexp(source string) (*ExtractedStrings, error) {
-	allStrings := anyQuotedString2.FindAllString(source, -1)
+func FindStringsInCode(source string, stringRegexp *regexp.Regexp) (*ExtractedStrings, error) {
+	allStrings := stringRegexp.FindAllString(source, -1)
 
 	unquotedStrings := Map(allStrings, dequote)
 
@@ -45,4 +53,13 @@ func FindStringsRegexp(source string) (*ExtractedStrings, error) {
 	} else {
 		return &ExtractedStrings{strings: []string{}, rawLiterals: []string{}}, nil
 	}
+}
+
+func FindStringsInFile(filePath string, stringRegexp *regexp.Regexp) (*ExtractedStrings, error) {
+	fileBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	fileString := string(fileBytes)
+	return FindStringsInCode(fileString, stringRegexp)
 }
