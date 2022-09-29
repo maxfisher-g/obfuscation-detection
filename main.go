@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // TODO
@@ -45,17 +46,39 @@ func main() {
 	if len(e.strings) > 0 {
 		fmt.Printf("Found %d strings in: %s\n", len(e.strings), filePath)
 		for _, s := range e.strings {
-			println(s)
+			entropy := StringEntropy(s, nil)
+			entropyNormalised := StringEntropyNormalised(s, nil)
+			fmt.Printf("%s  - entropy %.2f [%.1f%%]\n", s, entropy, 100*entropyNormalised)
 		}
 	} else {
 		fmt.Println("Unable to extract any strings from ", filePath)
 	}
 
+	println()
+
 	if len(data.identifiers) > 0 {
 		fmt.Printf("Found %d identifiers in: %s\n", len(data.identifiers), filePath)
+		identifierNames := make([]string, len(data.identifiers))
 		for _, ident := range data.identifiers {
-			fmt.Printf("%s: %s\n", ident.Type, ident.Name)
+			identifierNames = append(identifierNames, ident.Name)
 		}
+		characterProbs := CharacterProbabilities(identifierNames)
+
+		for _, ident := range data.identifiers {
+			name := ident.Name
+			dumbEntropy := StringEntropy(name, nil)
+			dumbEntropyNormalised := StringEntropyNormalised(name, nil)
+			betterEntropy := StringEntropy(name, characterProbs)
+			betterEntropyNormalised := StringEntropyNormalised(name, characterProbs)
+			fmt.Printf("%s: %s - naive entropy %.2f [%.1f%%], smart entropy %.2f [%.1f%%]\n",
+				ident.Type, ident.Name, dumbEntropy, 100*dumbEntropyNormalised, betterEntropy, 100*betterEntropyNormalised)
+		}
+
+		combinedStrings := strings.Join(identifierNames, "")
+		combinedEntropy := StringEntropy(combinedStrings, nil)
+		combinedNormalisedEntropy := StringEntropyNormalised(combinedStrings, nil)
+		fmt.Printf("Combined entropy: %.2f [%.1f%%]\n", combinedEntropy, combinedNormalisedEntropy)
+
 	} else {
 		fmt.Println("Unable to extract any identifiers from ", filePath)
 	}
