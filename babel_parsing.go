@@ -23,11 +23,15 @@ func RunBabelParsing(filePath string) (*BabelParseResult, error) {
 		return nil, err
 	}
 
+	jsonString := string(out)
+	println("Decoding JSON")
 	// parse JSON to get results as Go struct
-	decoder := json.NewDecoder(strings.NewReader(string(out)))
+	decoder := json.NewDecoder(strings.NewReader(jsonString))
 	var storage []BabelJSONElement
 	err = decoder.Decode(&storage)
 	if err != nil {
+		println("Failed on decoding the following JSON")
+		println(jsonString)
 		return nil, err
 	}
 
@@ -36,11 +40,14 @@ func RunBabelParsing(filePath string) (*BabelParseResult, error) {
 	for _, element := range storage {
 		switch element.SymbolType {
 		case "Identifier":
-			result.identifiers = append(result.identifiers, ParsedIdentifier{
-				Type: makeIdentifierType(element.SymbolSubtype),
-				Name: element.Data.(string),
-				Pos:  TextPosition{element.Pos[0], element.Pos[1]},
-			})
+			identifierType := checkIdentifierType(element.SymbolSubtype)
+			if identifierType != unknown {
+				result.identifiers = append(result.identifiers, ParsedIdentifier{
+					Type: identifierType,
+					Name: element.Data.(string),
+					Pos:  TextPosition{element.Pos[0], element.Pos[1]},
+				})
+			}
 			break
 		case "Literal":
 			result.literals = append(result.literals, ParsedLiteral[any]{

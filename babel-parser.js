@@ -14,7 +14,7 @@ const parseOutputLines = []
 
 function logJSON(type, subtype, name, pos, array, extra = null) {
     const extraValue = (extra !== null) ? `${JSON.stringify(extra)}` : "{}"
-    const arrayValue = (array !== null) ? array : false
+    const arrayValue = (array !== null && array !== undefined) ? array : false
     const json = `{"type":"${type}","subtype":"${subtype}","data":${JSON.stringify(name)},"pos":${pos},` +
         `"array":${arrayValue}, "extra":${extraValue}}`
     parseOutputLines.push(json)
@@ -79,6 +79,7 @@ function walkAst(startNode, isInArray = false) {
             break
         case "MemberExpression":
             walkAst(n.object)
+            // TODO log as member identifier
             walkAst(n.property)
             break
         case "VariableDeclaration":
@@ -89,7 +90,7 @@ function walkAst(startNode, isInArray = false) {
             walkAst(n.init)
             break
         case "Identifier":
-            logJSON("OtherIdentifier", n.name, loc)
+            logIdentifierJSON("Unknown", n.name, loc)
             break
         case "StringLiteral":
             logLiteralJSON("String", n.value, loc, isInArray, n.extra)
@@ -130,5 +131,4 @@ if (!filename) {
     console.error("no filename specified");
 } else {
     parseAndPrint(filename)
-
 }

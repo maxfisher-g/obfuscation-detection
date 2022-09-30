@@ -7,16 +7,17 @@ type IdentifierType string
 const (
 	function IdentifierType = "Function"
 	variable IdentifierType = "Variable"
+	unknown  IdentifierType = "Unknown" // Used for as-yet unsupported or unknown types
 )
 
-func makeIdentifierType(s string) IdentifierType {
+func checkIdentifierType(s string) IdentifierType {
 	switch s {
 	case "Function":
 		return function
 	case "Variable":
 		return variable
 	default:
-		panic(fmt.Errorf("unknown identifier type: %s", s))
+		return unknown
 	}
 }
 

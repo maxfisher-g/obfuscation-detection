@@ -52,14 +52,23 @@ StringEntropyNormalised
 Returns string entropy normalised by the log of the length of the string. This quantity is used
 because for log(N) is the maximum possible entropy out of all strings with length N, where N > 0.
 If the string has one or fewer characters, the ratio is defined to be 1.
-As a formula: E_n(S) := 1 if |S| <= 1, otherwise E(S) / log(|S|)
+As a formula:
+
+	E_n(S) := {
+	    0,               if |S| = 0
+	    1,               if |S| = 1
+	    E(S) / log(|S|), otherwise
+	}
 */
+// TODO does this make sense when a general probability structure is used?
 func StringEntropyNormalised(s string, prob *map[rune]float64) float64 {
-	if len(s) <= 1 {
+	switch len(s) {
+	case 0:
+		return 0
+	case 1:
 		return 1
-	} else {
-		entropy := StringEntropy(s, prob)
-		return entropy / math.Log(float64(len(s)))
+	default:
+		return StringEntropy(s, prob) / math.Log(float64(len(s)))
 	}
 }
 

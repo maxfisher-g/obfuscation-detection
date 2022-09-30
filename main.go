@@ -48,7 +48,7 @@ func main() {
 		for _, s := range e.strings {
 			entropy := StringEntropy(s, nil)
 			entropyNormalised := StringEntropyNormalised(s, nil)
-			fmt.Printf("%s  - entropy %.2f [%.1f%%]\n", s, entropy, 100*entropyNormalised)
+			fmt.Printf("'%s' - entropy %.2f [%.1f%%]\n", s, entropy, 100*entropyNormalised)
 		}
 	} else {
 		fmt.Println("Unable to extract any strings from ", filePath)
@@ -63,6 +63,11 @@ func main() {
 			identifierNames = append(identifierNames, ident.Name)
 		}
 		characterProbs := CharacterProbabilities(identifierNames)
+
+		println("Character probabilities")
+		for ch, prob := range *characterProbs {
+			fmt.Printf("%s: %.3f\n", string(ch), prob)
+		}
 
 		for _, ident := range data.identifiers {
 			name := ident.Name
