@@ -5,20 +5,30 @@ import "fmt"
 type IdentifierType string
 
 const (
-	function IdentifierType = "Function"
-	variable IdentifierType = "Variable"
-	unknown  IdentifierType = "Unknown" // Used for as-yet unsupported or unknown types
+	function  IdentifierType = "Function"
+	variable  IdentifierType = "Variable"
+	parameter IdentifierType = "Parameter"
+	class     IdentifierType = "Class"
+	other     IdentifierType = "Other"
+	unknown   IdentifierType = "Unknown"
 )
 
+var allTypes = []IdentifierType{
+	function,
+	variable,
+	parameter,
+	class,
+	other,
+	unknown,
+}
+
 func checkIdentifierType(s string) IdentifierType {
-	switch s {
-	case "Function":
-		return function
-	case "Variable":
-		return variable
-	default:
-		return unknown
+	for _, typeName := range allTypes {
+		if s == string(typeName) {
+			return typeName
+		}
 	}
+	return unknown
 }
 
 type ParsedIdentifier struct {

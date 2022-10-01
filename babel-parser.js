@@ -4,8 +4,6 @@
 const parser = require("@babel/parser");
 const fs = require("fs");
 
-const printTypes = false;
-
 function locationString(node) {
     return (node.loc != null) ? `[${node.loc.start.line},${node.loc.start.column}]` : "[]"
 }
@@ -14,7 +12,7 @@ const parseOutputLines = []
 
 function logJSON(type, subtype, name, pos, array, extra = null) {
     const extraValue = (extra !== null) ? `${JSON.stringify(extra)}` : "{}"
-    const arrayValue = (array !== null && array !== undefined) ? array : false
+    const arrayValue = (array !== null) ? array : false
     const json = `{"type":"${type}","subtype":"${subtype}","data":${JSON.stringify(name)},"pos":${pos},` +
         `"array":${arrayValue}, "extra":${extraValue}}`
     parseOutputLines.push(json)
@@ -27,6 +25,32 @@ function logLiteralJSON(subtype, value, pos, inArray, extra = null) {
     logJSON("Literal", subtype, value, pos, inArray, extra)
 }
 
+function logParameters(node) {
+    const n = node
+    for (let i = 0; i < n.params.length; i++) {
+        p = n.params[i]
+        switch (p.type) {
+            // simple function parameter name:
+            // function f(x)
+            case "Identifier":
+                logIdentifierJSON("Parameter", p.name, locationString(p))
+                break
+            // parameter with default value:
+            // function f(x = 3)
+            case "AssignmentPattern":
+                if (p.left.type === "Identifier") {
+                    logIdentifierJSON("Parameter", p.left.name, locationString(p))
+                } else {
+                    // This is too hard...
+                    walkAst(p.left)
+                }
+                walkAst(p.right)
+                break
+        }
+    }
+
+}
+
 function multiWalkAst(nodeList, isInArray = false) {
     if (nodeList !== null) {
         for (let i = 0; i < nodeList.length; i++) {
@@ -35,11 +59,14 @@ function multiWalkAst(nodeList, isInArray = false) {
     }
 }
 
-function walkAst(startNode, isInArray = false) {
+function walkAst(startNode, isInArray = false, printDebug = false) {
     // walk the AST and print out any literals
+    if (startNode == null) {
+        return
+    }
     const n = startNode;
 
-    if (printTypes) {
+    if (printDebug) {
         console.log(`# type: ${n.type}`)
     }
 
@@ -59,13 +86,20 @@ function walkAst(startNode, isInArray = false) {
             if (n.id !== null) {
                 logIdentifierJSON("Function", n.id.name, locationString(n.id))
             }
+            logParameters(n)
             walkAst(n.body)
             break
         case "AwaitExpression":
             walkAst(n.argument)
             break
         case "AssignmentExpression":
-        // fall-through
+            if (n.left.type === "Identifier") {
+                logIdentifierJSON("AssignmentTarget", n.left.name, locationString(n.left))
+            } else {
+                walkAst(n.left)
+            }
+            walkAst(n.right)
+            break
         case "BinaryExpression":
             walkAst(n.left)
             walkAst(n.right)
@@ -77,10 +111,123 @@ function walkAst(startNode, isInArray = false) {
             walkAst(n.callee)
             multiWalkAst(n.arguments, isInArray)
             break
+        case "ClassExpression":
+            if (n.id !== null) {
+                logIdentifierJSON("Class", n.id.name, locationString(n.id))
+            }
+            walkAst(n.body)
+            // TODO superclass, decorators?
+            break
+        case "ClassBody":
+            multiWalkAst(n.body)
+            break
+        case "ClassMethod":
+            if (n.kind !== "Constructor" && n.key.type === "Identifier") {
+                logIdentifierJSON("Method", n.key.name, locationString(n.key))
+            }
+            logParameters(n)
+            walkAst(n.body)
+            break
+        case "ClassPrivateMethod":
+            // key is PrivateName
+            logIdentifierJSON("Method", n.key.id.name, locationString(n.key.id))
+            logParameters(n)
+            walkAst(n.body)
+            break
+        case "ClassProperty":
+            if (n.key.type === "Identifier") {
+                logIdentifierJSON("Property", n.key.name, locationString(n.key))
+            } else {
+                walkAst(n.key)
+            }
+            walkAst(n.value)
+            break
+        case "ClassPrivateProperty":
+            // key is PrivateName
+            logIdentifierJSON("Property", n.key.id.name, locationString(n.key.id))
+            walkAst(n.value)
+            break
+        case "StaticBlock":
+            multiWalkAst(n.body)
+            break
         case "MemberExpression":
             walkAst(n.object)
-            // TODO log as member identifier
-            walkAst(n.property)
+            // Should be either Identifier or PrivateName if static (a.b) property
+            // else Expression if computed (a[b]) property
+            switch (n.property.type) {
+                case "Identifier":
+                    logIdentifierJSON("Member", n.property.name, locationString(n.property))
+                    break
+                case "PrivateName":
+                    logIdentifierJSON("Member", n.property.id.name, locationString(n.property.id))
+                    break
+                default:
+                    if (!n.computed && printDebug) {
+                        console.log(`Warning: MemberExpression had property of type ${n.property.type} but was not computed`)
+                        console.log(n.property)
+                    }
+                    walkAst(n.property)
+                    break
+            }
+            break
+        case "ThisExpression":
+            // nothing to do
+            break
+        case "ReturnStatement":
+            walkAst(n.argument)
+            break
+        case "LabeledStatement":
+            logIdentifierJSON("StatementLabel", n.label.name, locationString(n.label))
+            walkAst(n.body)
+            break
+        case "BreakStatement":
+            // fall-through
+        case "ContinueStatement":
+            // the only thing of interest would be the label, which must already have been defined somewhere else
+            break
+        case "WhileStatement":
+            // fall-through
+        case "DoWhileStatement":
+            walkAst(n.test)
+            walkAst(n.body)
+            break
+        case "ForStatement":
+            walkAst(n.init)
+            walkAst(n.test)
+            walkAst(n.update)
+            walkAst(n.body)
+            break
+        case "ForOfStatement":
+            // fall-through
+        case "ForInStatement":
+            walkAst(n.left)
+            walkAst(n.right)
+            walkAst(n.body)
+            break
+        case "TryStatement":
+            walkAst(n.block)
+            walkAst(n.handler)
+            walkAst(n.finalizer)
+            break
+        case "ThrowStatement":
+            walkAst(n.argument)
+            break
+        case "CatchClause":
+            walkAst(n.param)
+            walkAst(n.body)
+            break
+        case "IfStatement":
+            walkAst(n.test)
+            walkAst(n.consequent)
+            walkAst(n.alternate)
+            break
+        case "SwitchStatement":
+            walkAst(n.discriminant)
+            multiWalkAst(n.cases)
+            break
+        case "SwitchCase":
+            walkAst(n.test)
+            multiWalkAst(n.consequent)
             break
         case "VariableDeclaration":
             multiWalkAst(n.declarations, isInArray)
@@ -90,7 +237,7 @@ function walkAst(startNode, isInArray = false) {
             walkAst(n.init)
             break
         case "Identifier":
-            logIdentifierJSON("Unknown", n.name, loc)
+            logIdentifierJSON("Other", n.name, loc)
             break
         case "StringLiteral":
             logLiteralJSON("String", n.value, loc, isInArray, n.extra)
@@ -109,26 +256,31 @@ function walkAst(startNode, isInArray = false) {
             logLiteralJSON("StringTemplate", n.value.raw, loc, isInArray, n.value)
             break
         default:
-            console.log(`Found unknown node of type ${n.type} node @ ${loc}`);
-            console.log(n)
+            if (printDebug) {
+                console.log(`Found unknown node of type ${n.type} node @ ${loc}`);
+                console.log(n)
+            }
     }
 }
 
-function parseAndPrint(filename) {
+function parseAndPrint(filename, printDebug) {
     const file = fs.readFileSync(filename, "utf8");
     const ast = parser.parse(file);
 
     // walk the AST and print out any literals
-    //console.log(JSON.stringify(ast, null, "  "));
+    if (printDebug) {
+        console.log(JSON.stringify(ast, null, "  "));
+    }
 
-    walkAst(ast)
+    walkAst(ast, printDebug)
     allJson = "[\n" + parseOutputLines.join(",\n") + "\n]"
     console.log(allJson)
 }
 
 const filename = process.argv[2];
+const printDebug = false
 if (!filename) {
     console.error("no filename specified");
 } else {
-    parseAndPrint(filename)
+    parseAndPrint(filename, printDebug)
 }

@@ -16,7 +16,7 @@ type BabelJSONElement struct {
 	Extra         map[string]any `json:"extra"`
 }
 
-func RunBabelParsing(filePath string) (*BabelParseResult, error) {
+func RunBabelParsing(filePath string, printJson bool) (*BabelParseResult, error) {
 	cmd := exec.Command("./babel-parser.js", filePath)
 	out, err := cmd.Output()
 	if err != nil {
@@ -33,6 +33,10 @@ func RunBabelParsing(filePath string) (*BabelParseResult, error) {
 		println("Failed on decoding the following JSON")
 		println(jsonString)
 		return nil, err
+	} else {
+		if printJson {
+			println(jsonString)
+		}
 	}
 
 	// convert the elements into more natural data structure
@@ -40,14 +44,15 @@ func RunBabelParsing(filePath string) (*BabelParseResult, error) {
 	for _, element := range storage {
 		switch element.SymbolType {
 		case "Identifier":
-			identifierType := checkIdentifierType(element.SymbolSubtype)
-			if identifierType != unknown {
-				result.identifiers = append(result.identifiers, ParsedIdentifier{
-					Type: identifierType,
-					Name: element.Data.(string),
-					Pos:  TextPosition{element.Pos[0], element.Pos[1]},
-				})
+			symbolSubtype := checkIdentifierType(element.SymbolSubtype)
+			if symbolSubtype == other || symbolSubtype == unknown {
+				break
 			}
+			result.identifiers = append(result.identifiers, ParsedIdentifier{
+				Type: checkIdentifierType(element.SymbolSubtype),
+				Name: element.Data.(string),
+				Pos:  TextPosition{element.Pos[0], element.Pos[1]},
+			})
 			break
 		case "Literal":
 			result.literals = append(result.literals, ParsedLiteral[any]{
@@ -65,14 +70,15 @@ func RunBabelParsing(filePath string) (*BabelParseResult, error) {
 	return &result, nil
 }
 
-func TestBabelParsing() {
-	parseResult, err := RunBabelParsing("./test-strings.js")
+func TestBabelParsing(filePath string) {
+	parseResult, err := RunBabelParsing(filePath, true)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		if ee, ok := err.(*exec.ExitError); ok {
 			fmt.Printf("Process stderr:\n")
 			fmt.Println(string(ee.Stderr))
 		}
+		return
 	} else {
 		fmt.Println("Completed without errors")
 	}
