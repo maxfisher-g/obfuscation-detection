@@ -20,7 +20,7 @@ var doubleQuotedString2 = regexp.MustCompile(`"(?:[^"\\]*(?:\\.)?)*"`)
 var backTickQuotedString2 = regexp.MustCompile("`(?:[^`\\\\]*(?:\\\\.)?)*`")
 
 func combineRegexp(regexps ...*regexp.Regexp) *regexp.Regexp {
-	patterns := Map(regexps, func(r *regexp.Regexp) string { return r.String() })
+	patterns := Transform(regexps, func(r *regexp.Regexp) string { return r.String() })
 	return regexp.MustCompile(strings.Join(patterns, "|"))
 }
 
@@ -46,7 +46,7 @@ func dequote(s string) string {
 func FindStringsInCode(source string, stringRegexp *regexp.Regexp) (*ExtractedStrings, error) {
 	allStrings := stringRegexp.FindAllString(source, -1)
 
-	unquotedStrings := Map(allStrings, dequote)
+	unquotedStrings := Transform(allStrings, dequote)
 
 	if allStrings != nil {
 		return &ExtractedStrings{strings: unquotedStrings, rawLiterals: allStrings}, nil
