@@ -11,6 +11,13 @@ import (
 //  string literal analysis
 //  analysis of numeric arrays (entropy)
 
+func printProbabilityMap(m map[rune]float64) {
+	mapStrings := TransformMap(m, func(k rune, v float64) string {
+		return fmt.Sprintf("%s: %.3f", string(k), v)
+	})
+	println(strings.Join(mapStrings, ", "))
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Printf("Usage: %s <filename.js>\n", os.Args[0])
@@ -19,10 +26,10 @@ func main() {
 
 	filePath := os.Args[1]
 
-	//TestBabelParsing()
+	//TestBabelParsing(filePath)
 	//return
 
-	data, err := RunBabelParsing(filePath)
+	data, err := RunBabelParsing(filePath, false)
 	if err != nil && data == nil {
 		fmt.Printf("Error occured while extracting strings: %v\n", err)
 		return
@@ -65,9 +72,8 @@ func main() {
 		characterProbs := CharacterProbabilities(identifierNames)
 
 		println("Character probabilities")
-		for ch, prob := range *characterProbs {
-			fmt.Printf("%s: %.3f\n", string(ch), prob)
-		}
+		printProbabilityMap(*characterProbs)
+		println()
 
 		for _, ident := range data.identifiers {
 			name := ident.Name
