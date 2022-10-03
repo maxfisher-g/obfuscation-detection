@@ -263,9 +263,10 @@ function walkAst(startNode, isInArray = false, printDebug = false) {
     }
 }
 
-function parseAndPrint(filename, printDebug) {
-    const file = fs.readFileSync(filename, "utf8");
-    const ast = parser.parse(file);
+
+
+function findLiteralsAndIdentifiers(source, printDebug) {
+    const ast = parser.parse(source);
 
     // walk the AST and print out any literals
     if (printDebug) {
@@ -277,10 +278,16 @@ function parseAndPrint(filename, printDebug) {
     console.log(allJson)
 }
 
-const filename = process.argv[2];
-const printDebug = false
-if (!filename) {
-    console.error("no filename specified");
-} else {
-    parseAndPrint(filename, printDebug)
+function main() {
+    const printDebug = false
+    // https://github.com/nodejs/help/issues/2663
+    // Referencing process.stdin.fd (actually just process.stdin) causes stdin to become nonblocking
+    // Therefore running this in a terminal in interactive mode with no file piped into stdin will
+    // cause the read to fail with EAGAIN
+    // Passing the raw '0' as the fd avoids this issue.
+    const sourceFile = process.argv.length >= 3 ? process.argv[2] : 0; // process.stdin.fd;
+    const sourceCode = fs.readFileSync(sourceFile, "utf8");
+    findLiteralsAndIdentifiers(sourceCode, printDebug)
 }
+
+main()
