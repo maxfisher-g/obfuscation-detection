@@ -1,4 +1,4 @@
-package main
+package stringentropy
 
 import (
 	"math"
@@ -22,7 +22,7 @@ func TestStringEntropy(t *testing.T) {
 		{"aaA", 0.636514168294813}, // math.Log(3) - 2*math.Log(2)/3
 	}
 	for index, test := range testCases {
-		actual := StringEntropy(test.s, nil)
+		actual := CalculateEntropy(test.s, nil)
 		if math.Abs(test.expected-actual) > tolerance {
 			t.Errorf("Test case %d failed (str: %s, expected: %f, actual: %f\n",
 				index+1, test.s, test.expected, actual)
@@ -42,7 +42,7 @@ func TestStringEntropyRatio(t *testing.T) {
 		{"aaA", 0.5793801642856952}, // 1 - 2*math.Log(2)/(3*math.Log(3))
 	}
 	for index, test := range testCases {
-		actual := StringEntropyNormalised(test.s, nil)
+		actual := CalculateNormalisedEntropy(test.s, nil)
 		if math.Abs(test.expected-actual) > tolerance {
 			t.Errorf("Test case %d failed (str: %s, expected: %f, actual: %f\n",
 				index+1, test.s, test.expected, actual)

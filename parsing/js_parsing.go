@@ -1,4 +1,4 @@
-package main
+package parsing
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// BabelJSONElement
+// Interfaces with output of babel-parser.js
 type BabelJSONElement struct {
 	SymbolType    string         `json:"type"`
 	SymbolSubtype string         `json:"subtype"`
@@ -16,8 +18,8 @@ type BabelJSONElement struct {
 	Extra         map[string]any `json:"extra"`
 }
 
-func RunBabelParsing(filePath string, printJson bool) (*BabelParseResult, error) {
-	cmd := exec.Command("./babel-parser.js", filePath)
+func ParseJS(filePath string, printJson bool) (*ParseResult, error) {
+	cmd := exec.Command("./parsing/babel-parser.js", filePath)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -40,7 +42,7 @@ func RunBabelParsing(filePath string, printJson bool) (*BabelParseResult, error)
 	}
 
 	// convert the elements into more natural data structure
-	result := BabelParseResult{}
+	result := ParseResult{}
 	for _, element := range storage {
 		switch element.SymbolType {
 		case "Identifier":
@@ -48,14 +50,14 @@ func RunBabelParsing(filePath string, printJson bool) (*BabelParseResult, error)
 			if symbolSubtype == other || symbolSubtype == unknown {
 				break
 			}
-			result.identifiers = append(result.identifiers, ParsedIdentifier{
+			result.Identifiers = append(result.Identifiers, ParsedIdentifier{
 				Type: checkIdentifierType(element.SymbolSubtype),
 				Name: element.Data.(string),
 				Pos:  TextPosition{element.Pos[0], element.Pos[1]},
 			})
 			break
 		case "Literal":
-			result.literals = append(result.literals, ParsedLiteral[any]{
+			result.Literals = append(result.Literals, ParsedLiteral[any]{
 				Type:     fmt.Sprintf("%T", element.Data),
 				Value:    element.Data,
 				RawValue: element.Extra["raw"].(string),
@@ -70,8 +72,8 @@ func RunBabelParsing(filePath string, printJson bool) (*BabelParseResult, error)
 	return &result, nil
 }
 
-func TestBabelParsing(filePath string) {
-	parseResult, err := RunBabelParsing(filePath, true)
+func RunExampleParsing(filePath string) {
+	parseResult, err := ParseJS(filePath, true)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		if ee, ok := err.(*exec.ExitError); ok {
@@ -84,12 +86,12 @@ func TestBabelParsing(filePath string) {
 	}
 	println()
 	println("== Parsed Identifiers ==")
-	for _, identifier := range parseResult.identifiers {
+	for _, identifier := range parseResult.Identifiers {
 		fmt.Println(identifier)
 	}
 	println()
 	println("== Parsed Literals ==")
-	for _, literal := range parseResult.literals {
+	for _, literal := range parseResult.Literals {
 		fmt.Println(literal)
 	}
 }

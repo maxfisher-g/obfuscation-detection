@@ -1,13 +1,13 @@
-package main
+package stringentropy
 
 import (
 	"math"
 )
 
 /*
-StringEntropy
+CalculateEntropy
 
-Entropy of a string S of characters over an alphabet A, is defined as
+Calculates entropy of a string S of characters over an alphabet A, which is defined as
 
 	E(S) = - sum(i in A) { (p(i)) * log(p(i)) },
 
@@ -25,7 +25,7 @@ the entropy approaches 0.
 
 Reference: https://link.springer.com/chapter/10.1007/978-3-642-10509-8_19
 */
-func StringEntropy(s string, prob *map[rune]float64) float64 {
+func CalculateEntropy(s string, prob *map[rune]float64) float64 {
 	if len(s) == 0 {
 		return 0
 	}
@@ -48,7 +48,7 @@ func StringEntropy(s string, prob *map[rune]float64) float64 {
 }
 
 /*
-StringEntropyNormalised
+CalculateNormalisedEntropy
 Returns string entropy normalised by the log of the length of the string. This quantity is used
 because for log(N) is the maximum possible entropy out of all strings with length N, where N > 0.
 If the string has one or fewer characters, the ratio is defined to be 1.
@@ -61,14 +61,15 @@ As a formula:
 	}
 */
 // TODO does this make sense when a general probability structure is used?
-func StringEntropyNormalised(s string, prob *map[rune]float64) float64 {
+// TODO calculate max string entropy for a given set of character counts
+func CalculateNormalisedEntropy(s string, prob *map[rune]float64) float64 {
 	switch len(s) {
 	case 0:
 		return 0
 	case 1:
 		return 1
 	default:
-		return StringEntropy(s, prob) / math.Log(float64(len(s)))
+		return CalculateEntropy(s, prob) / math.Log(float64(len(s)))
 	}
 }
 

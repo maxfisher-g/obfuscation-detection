@@ -1,4 +1,4 @@
-package main
+package utils
 
 func Transform[T, R any](ts []T, fn func(T) R) []R {
 	result := make([]R, len(ts))

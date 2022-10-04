@@ -1,6 +1,8 @@
-package main
+package parsing
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type IdentifierType string
 
@@ -53,7 +55,7 @@ func (l ParsedLiteral[T]) String() string {
 	return fmt.Sprintf("%s %v (%s) [pos %d:%d]", l.Type, l.Value, l.RawValue, l.Pos.Row(), l.Pos.Col())
 }
 
-type BabelParseResult struct {
-	identifiers []ParsedIdentifier
-	literals    []ParsedLiteral[any]
+type ParseResult struct {
+	Identifiers []ParsedIdentifier
+	Literals    []ParsedLiteral[any]
 }

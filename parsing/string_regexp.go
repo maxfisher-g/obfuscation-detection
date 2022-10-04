@@ -1,6 +1,7 @@
-package main
+package parsing
 
 import (
+	"obfuscation-detection/utils"
 	"os"
 	"regexp"
 	"strings"
@@ -20,7 +21,7 @@ var doubleQuotedString2 = regexp.MustCompile(`"(?:[^"\\]*(?:\\.)?)*"`)
 var backTickQuotedString2 = regexp.MustCompile("`(?:[^`\\\\]*(?:\\\\.)?)*`")
 
 func combineRegexp(regexps ...*regexp.Regexp) *regexp.Regexp {
-	patterns := Transform(regexps, func(r *regexp.Regexp) string { return r.String() })
+	patterns := utils.Transform(regexps, func(r *regexp.Regexp) string { return r.String() })
 	return regexp.MustCompile(strings.Join(patterns, "|"))
 }
 
@@ -31,8 +32,8 @@ var anyQuotedString = combineRegexp(singleQuotedString, doubleQuotedString, back
 var anyQuotedString2 = combineRegexp(singleQuotedString2, doubleQuotedString2, backTickQuotedString2)
 
 type ExtractedStrings struct {
-	rawLiterals []string
-	strings     []string
+	RawLiterals []string
+	Strings     []string
 }
 
 func dequote(s string) string {
@@ -46,12 +47,12 @@ func dequote(s string) string {
 func FindStringsInCode(source string, stringRegexp *regexp.Regexp) (*ExtractedStrings, error) {
 	allStrings := stringRegexp.FindAllString(source, -1)
 
-	unquotedStrings := Transform(allStrings, dequote)
+	unquotedStrings := utils.Transform(allStrings, dequote)
 
 	if allStrings != nil {
-		return &ExtractedStrings{strings: unquotedStrings, rawLiterals: allStrings}, nil
+		return &ExtractedStrings{Strings: unquotedStrings, RawLiterals: allStrings}, nil
 	} else {
-		return &ExtractedStrings{strings: []string{}, rawLiterals: []string{}}, nil
+		return &ExtractedStrings{Strings: []string{}, RawLiterals: []string{}}, nil
 	}
 }
 

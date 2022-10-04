@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"obfuscation-detection/parsing"
+	"obfuscation-detection/stringentropy"
+	"obfuscation-detection/utils"
 	"os"
 	"strings"
 )
@@ -12,7 +15,7 @@ import (
 //  analysis of numeric arrays (entropy)
 
 func printProbabilityMap(m map[rune]float64) {
-	mapStrings := TransformMap(m, func(k rune, v float64) string {
+	mapStrings := utils.TransformMap(m, func(k rune, v float64) string {
 		return fmt.Sprintf("%s: %.3f", string(k), v)
 	})
 	println(strings.Join(mapStrings, ", "))
@@ -29,19 +32,19 @@ func main() {
 	//TestBabelParsing(filePath)
 	//return
 
-	data, err := RunBabelParsing(filePath, false)
+	data, err := parsing.ParseJS(filePath, false)
 	if err != nil && data == nil {
 		fmt.Printf("Error occured while extracting strings: %v\n", err)
 		return
 	}
 
-	var e ExtractedStrings
+	var e parsing.ExtractedStrings
 
-	for _, d := range data.literals {
+	for _, d := range data.Literals {
 		switch d.Type {
 		case "string":
-			e.strings = append(e.strings, d.Value.(string))
-			e.rawLiterals = append(e.rawLiterals, d.RawValue)
+			e.Strings = append(e.Strings, d.Value.(string))
+			e.RawLiterals = append(e.RawLiterals, d.RawValue)
 			break
 		case "float64":
 		case "bool":
@@ -50,11 +53,11 @@ func main() {
 		}
 	}
 
-	if len(e.strings) > 0 {
-		fmt.Printf("Found %d strings in: %s\n", len(e.strings), filePath)
-		for _, s := range e.strings {
-			entropy := StringEntropy(s, nil)
-			entropyNormalised := StringEntropyNormalised(s, nil)
+	if len(e.Strings) > 0 {
+		fmt.Printf("Found %d strings in: %s\n", len(e.Strings), filePath)
+		for _, s := range e.Strings {
+			entropy := stringentropy.CalculateEntropy(s, nil)
+			entropyNormalised := stringentropy.CalculateNormalisedEntropy(s, nil)
 			fmt.Printf("'%s' - entropy %.2f [%.1f%%]\n", s, entropy, 100*entropyNormalised)
 		}
 	} else {
@@ -63,31 +66,31 @@ func main() {
 
 	println()
 
-	if len(data.identifiers) > 0 {
-		fmt.Printf("Found %d identifiers in: %s\n", len(data.identifiers), filePath)
-		identifierNames := make([]string, len(data.identifiers))
-		for _, ident := range data.identifiers {
+	if len(data.Identifiers) > 0 {
+		fmt.Printf("Found %d identifiers in: %s\n", len(data.Identifiers), filePath)
+		identifierNames := make([]string, len(data.Identifiers))
+		for _, ident := range data.Identifiers {
 			identifierNames = append(identifierNames, ident.Name)
 		}
-		characterProbs := CharacterProbabilities(identifierNames)
+		characterProbs := stringentropy.CharacterProbabilities(identifierNames)
 
 		println("Character probabilities")
 		printProbabilityMap(*characterProbs)
 		println()
 
-		for _, ident := range data.identifiers {
+		for _, ident := range data.Identifiers {
 			name := ident.Name
-			dumbEntropy := StringEntropy(name, nil)
-			dumbEntropyNormalised := StringEntropyNormalised(name, nil)
-			betterEntropy := StringEntropy(name, characterProbs)
-			betterEntropyNormalised := StringEntropyNormalised(name, characterProbs)
+			dumbEntropy := stringentropy.CalculateEntropy(name, nil)
+			dumbEntropyNormalised := stringentropy.CalculateNormalisedEntropy(name, nil)
+			betterEntropy := stringentropy.CalculateEntropy(name, characterProbs)
+			betterEntropyNormalised := stringentropy.CalculateNormalisedEntropy(name, characterProbs)
 			fmt.Printf("%s: %s - naive entropy %.2f [%.1f%%], smart entropy %.2f [%.1f%%]\n",
 				ident.Type, ident.Name, dumbEntropy, 100*dumbEntropyNormalised, betterEntropy, 100*betterEntropyNormalised)
 		}
 
 		combinedStrings := strings.Join(identifierNames, "")
-		combinedEntropy := StringEntropy(combinedStrings, nil)
-		combinedNormalisedEntropy := StringEntropyNormalised(combinedStrings, nil)
+		combinedEntropy := stringentropy.CalculateEntropy(combinedStrings, nil)
+		combinedNormalisedEntropy := stringentropy.CalculateNormalisedEntropy(combinedStrings, nil)
 		fmt.Printf("Combined entropy: %.2f [%.1f%%]\n", combinedEntropy, combinedNormalisedEntropy)
 
 	} else {

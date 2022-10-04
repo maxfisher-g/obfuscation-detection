@@ -1,4 +1,4 @@
-package main
+package parsing
 
 type TextPosition [2]int
 
