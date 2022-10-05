@@ -7,21 +7,23 @@ import (
 type IdentifierType string
 
 const (
-	function  IdentifierType = "Function"
-	variable  IdentifierType = "Variable"
-	parameter IdentifierType = "Parameter"
-	class     IdentifierType = "Class"
-	other     IdentifierType = "Other"
-	unknown   IdentifierType = "Unknown"
+	Function  IdentifierType = "Function"
+	Variable  IdentifierType = "Variable"
+	Parameter IdentifierType = "Parameter"
+	Class     IdentifierType = "Class"
+	Member    IdentifierType = "Member"
+	Other     IdentifierType = "Other"
+	Unknown   IdentifierType = "Unknown"
 )
 
 var allTypes = []IdentifierType{
-	function,
-	variable,
-	parameter,
-	class,
-	other,
-	unknown,
+	Function,
+	Variable,
+	Parameter,
+	Member,
+	Class,
+	Other,
+	Unknown,
 }
 
 func checkIdentifierType(s string) IdentifierType {
@@ -30,7 +32,7 @@ func checkIdentifierType(s string) IdentifierType {
 			return typeName
 		}
 	}
-	return unknown
+	return Unknown
 }
 
 type ParsedIdentifier struct {

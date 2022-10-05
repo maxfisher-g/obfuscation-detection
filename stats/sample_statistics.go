@@ -157,7 +157,7 @@ func quartiles[T RealNumber](sample []T) [5]float64 {
 	return result
 }
 
-func CalculateSampleStatistics[T RealNumber](sample []T) SampleStatistics {
+func Summarise[T RealNumber](sample []T) SampleStatistics {
 	l := len(sample)
 	m := mean(sample)
 	v := variance(sample, m)

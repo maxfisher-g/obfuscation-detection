@@ -7,7 +7,7 @@ import (
 
 func TestSummary(t *testing.T) {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
-	actual := CalculateSampleStatistics(data)
+	actual := Summarise(data)
 	expected := SampleStatistics{
 		Size:      9,
 		Mean:      5,
@@ -23,7 +23,7 @@ func TestSummary(t *testing.T) {
 
 func TestSummary2(t *testing.T) {
 	data := []int{36, 7, 40, 41, 6, 42, 43, 47, 49, 15, 39}
-	actual := CalculateSampleStatistics(data)
+	actual := Summarise(data)
 	expected := SampleStatistics{
 		Size:      11,
 		Mean:      33.18181818181818,
@@ -38,7 +38,7 @@ func TestSummary2(t *testing.T) {
 
 func TestSummary3(t *testing.T) {
 	data := []int{36, 40, 7, 39, 15, 41}
-	actual := CalculateSampleStatistics(data)
+	actual := Summarise(data)
 	expected := SampleStatistics{
 		Size:      6,
 		Mean:      29.666666666666668,
@@ -53,7 +53,7 @@ func TestSummary3(t *testing.T) {
 
 func TestSummary4(t *testing.T) {
 	var data []int
-	actual := CalculateSampleStatistics(data)
+	actual := Summarise(data)
 	nan := math.NaN()
 	expected := SampleStatistics{
 		Size:      0,
@@ -69,7 +69,7 @@ func TestSummary4(t *testing.T) {
 
 func TestSummary5(t *testing.T) {
 	data := []float64{1.5}
-	actual := CalculateSampleStatistics(data)
+	actual := Summarise(data)
 	nan := math.NaN()
 	expected := SampleStatistics{
 		Size:      1,
@@ -85,7 +85,7 @@ func TestSummary5(t *testing.T) {
 
 func TestSummary6(t *testing.T) {
 	data := []float64{1.5, 2.5}
-	actual := CalculateSampleStatistics(data)
+	actual := Summarise(data)
 	nan := math.NaN()
 	expected := SampleStatistics{
 		Size:      2,
@@ -101,7 +101,7 @@ func TestSummary6(t *testing.T) {
 
 func TestSummary7(t *testing.T) {
 	data := []float64{-12.5, 0, 12.5}
-	actual := CalculateSampleStatistics(data)
+	actual := Summarise(data)
 	expected := SampleStatistics{
 		Size:      3,
 		Mean:      0.0,

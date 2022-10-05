@@ -1,34 +1,25 @@
 package detection
 
 import (
-	"math"
 	"obfuscation-detection/stats"
 	"obfuscation-detection/stringentropy"
+	"obfuscation-detection/utils"
+	"strings"
 	"testing"
 )
 
 const jsParserPath = "../parsing/babel-parser.js"
 
-func singleStringEntropySummary(s string) stats.SampleStatistics {
-	e := stringentropy.CalculateEntropy(s, nil)
-	return stats.SampleStatistics{
-		Size:      1,
-		Mean:      e,
-		Variance:  math.NaN(),
-		Skewness:  math.NaN(),
-		Quartiles: [5]float64{e, e, e, e, e},
-	}
+func symbolEntropySummary(symbols []string) stats.SampleStatistics {
+	probs := stringentropy.CharacterProbabilities(symbols)
+	entropies := utils.Transform(symbols, func(s string) float64 { return stringentropy.CalculateEntropy(s, probs) })
+	return stats.Summarise(entropies)
 }
 
-func singleStringLengthSummary(s string) stats.SampleStatistics {
-	l := float64(len(s))
-	return stats.SampleStatistics{
-		Size:      1,
-		Mean:      l,
-		Variance:  math.NaN(),
-		Skewness:  math.NaN(),
-		Quartiles: [5]float64{l, l, l, l, l},
-	}
+func symbolLengthSummary(symbols []string) stats.SampleStatistics {
+	lengths := utils.Transform(symbols, func(s string) int { return len(s) })
+	return stats.Summarise(lengths)
+
 }
 
 func compareSummary(t *testing.T, name string, expected, actual stats.SampleStatistics) {
@@ -37,23 +28,60 @@ func compareSummary(t *testing.T, name string, expected, actual stats.SampleStat
 	}
 }
 
+func testSignals(t *testing.T, signals *Signals, stringLiterals, identifiers []string) {
+	expectedStringEntropySummary := symbolEntropySummary(stringLiterals)
+	expectedStringLengthSummary := symbolLengthSummary(stringLiterals)
+	expectedIdentifierEntropySummary := symbolEntropySummary(identifiers)
+	expectedIdentifierLengthSummary := symbolLengthSummary(identifiers)
+
+	compareSummary(t, "String literal entropy", expectedStringEntropySummary, signals.StringEntropySummary)
+	compareSummary(t, "String literal lengths", expectedStringLengthSummary, signals.StringLengthSummary)
+	compareSummary(t, "Identifier entropy", expectedIdentifierEntropySummary, signals.IdentifierEntropySummary)
+	compareSummary(t, "Identifier lengths", expectedIdentifierLengthSummary, signals.IdentifierLengthSummary)
+
+	expectedStringCombinedEntropy := stringentropy.CalculateEntropy(strings.Join(stringLiterals, ""), nil)
+	if !utils.FloatEquals(expectedStringCombinedEntropy, signals.CombinedStringEntropy, 1e-4) {
+		t.Errorf("Combined string entropy: expected %.3f, actual %.3f",
+			expectedStringCombinedEntropy, signals.CombinedStringEntropy)
+	}
+
+	expectedIdentifierCombinedEntropy := stringentropy.CalculateEntropy(strings.Join(identifiers, ""), nil)
+	if !utils.FloatEquals(expectedIdentifierCombinedEntropy, signals.CombinedIdentifierEntropy, 1e-4) {
+		t.Errorf("Combined identifier entropy: expected %.3f, actual %.3f",
+			expectedIdentifierCombinedEntropy, signals.CombinedIdentifierEntropy)
+	}
+}
+
 func TestBasic(t *testing.T) {
 	jsSource := `var a = "hello"`
-	signals, err := GenerateSignals(jsParserPath, "", jsSource)
+	signals, err := GenerateSignals(jsParserPath, "", jsSource, true)
 	if err != nil {
 		t.Error(err)
 	} else {
-		expectedStringEntropySummary := singleStringEntropySummary("hello")
-		expectedStringLengthSummary := singleStringLengthSummary("hello")
-		expectedIdentifierEntropySummary := singleStringEntropySummary("a")
-		expectedIdentifierLengthSummary := singleStringLengthSummary("a")
+		stringLiterals := []string{"hello"}
+		identifiers := []string{"a"}
+		testSignals(t, signals, stringLiterals, identifiers)
+	}
+}
 
-		compareSummary(t, "String literal entropy", expectedStringEntropySummary, signals.StringEntropySummary)
-		compareSummary(t, "String literal lengths", expectedStringLengthSummary, signals.StringLengthSummary)
-		compareSummary(t, "Identifier entropy", expectedIdentifierEntropySummary, signals.IdentifierEntropySummary)
-		compareSummary(t, "Identifier lengths", expectedIdentifierLengthSummary, signals.IdentifierLengthSummary)
-
-		// TODO compare combined entropies
-
+func TestBasic2(t *testing.T) {
+	jsSource := `
+		function test(a, b = 2) {
+			console.log("hello")
+			var c = a + b
+			if (c === 3) {
+				return 4
+			} else {
+				return "apple"
+			}
+		}
+	`
+	signals, err := GenerateSignals(jsParserPath, "", jsSource, true)
+	if err != nil {
+		t.Error(err)
+	} else {
+		stringLiterals := []string{"hello", "apple"}
+		identifiers := []string{"test", "a", "b", "c"}
+		testSignals(t, signals, stringLiterals, identifiers)
 	}
 }

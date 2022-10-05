@@ -287,6 +287,10 @@ function main() {
     // Passing the raw '0' as the fd avoids this issue.
     const sourceFile = process.argv.length >= 3 ? process.argv[2] : 0; // process.stdin.fd;
     const sourceCode = fs.readFileSync(sourceFile, "utf8");
+    if (printDebug) {
+        console.log("Read source:")
+        console.log(sourceCode)
+    }
     findLiteralsAndIdentifiers(sourceCode, printDebug)
 }
 

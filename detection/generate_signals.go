@@ -22,9 +22,18 @@ func getStrings(data *parsing.ParseResult) []string {
 }
 
 func getIdentifierNames(data *parsing.ParseResult) []string {
-	identifierNames := make([]string, len(data.Identifiers))
-	for i, ident := range data.Identifiers {
-		identifierNames[i] = ident.Name
+	var identifierNames []string
+	for _, ident := range data.Identifiers {
+		switch ident.Type {
+		case parsing.Function:
+			fallthrough
+		case parsing.Class:
+			fallthrough
+		case parsing.Parameter:
+			fallthrough
+		case parsing.Variable:
+			identifierNames = append(identifierNames, ident.Name)
+		}
 	}
 	return identifierNames
 }
@@ -49,8 +58,8 @@ func characterAnalysis(symbols []string) (
 		lengths = append(lengths, len(s))
 	}
 
-	lengthSummary = stats.CalculateSampleStatistics(lengths)
-	entropySummary = stats.CalculateSampleStatistics(entropies)
+	lengthSummary = stats.Summarise(lengths)
+	entropySummary = stats.Summarise(entropies)
 	combinedEntropy = stringentropy.CalculateEntropy(strings.Join(symbols, ""), nil)
 	return
 }
@@ -66,8 +75,8 @@ func characterAnalysis(symbols []string) (
 //
 // TODO Planned signals
 //   - analysis of numeric arrays (entropy)
-func GenerateSignals(jsParserPath, jsSourceFile string, jsSourceString string) (*Signals, error) {
-	data, err := parsing.ParseJS(jsParserPath, jsSourceFile, jsSourceString, false)
+func GenerateSignals(jsParserPath, jsSourceFile string, jsSourceString string, printDebug bool) (*Signals, error) {
+	data, err := parsing.ParseJS(jsParserPath, jsSourceFile, jsSourceString, printDebug)
 	if err != nil && data == nil {
 		fmt.Printf("Error occured while reading %s: %v\n", jsSourceFile, err)
 		return nil, err
@@ -78,8 +87,10 @@ func GenerateSignals(jsParserPath, jsSourceFile string, jsSourceString string) (
 	stringLiterals := getStrings(data)
 	identifierNames := getIdentifierNames(data)
 
-	//fmt.Printf("String literals (len=%d): %v\n", len(stringLiterals), stringLiterals)
-	//fmt.Printf("Identifier names (len=%d): %v\n", len(identifierNames), identifierNames)
+	if printDebug {
+		fmt.Printf("String literals (len=%d): %v\n", len(stringLiterals), stringLiterals)
+		fmt.Printf("Identifier names (len=%d): %v\n", len(identifierNames), identifierNames)
+	}
 
 	signals.StringLengthSummary, signals.StringEntropySummary, signals.CombinedStringEntropy =
 		characterAnalysis(stringLiterals)

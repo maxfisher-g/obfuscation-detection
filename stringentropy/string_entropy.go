@@ -73,10 +73,10 @@ func CalculateNormalisedEntropy(s string, prob *map[rune]float64) float64 {
 	}
 }
 
-func CharacterCounts(strings []string) *map[rune]int {
+func CharacterCounts(strs []string) *map[rune]int {
 	counts := make(map[rune]int)
 
-	for _, s := range strings {
+	for _, s := range strs {
 		for _, b := range s {
 			// if b is not in map, the read value will be zero, which is what we want
 			counts[b] = counts[b] + 1
@@ -100,7 +100,7 @@ func CharacterProbabilitiesFromCounts(counts *map[rune]int) *map[rune]float64 {
 
 // CharacterProbabilities
 // Just a convenience function that chains together the other fwo function calls.
-func CharacterProbabilities(strings []string) *map[rune]float64 {
-	counts := CharacterCounts(strings)
+func CharacterProbabilities(strs []string) *map[rune]float64 {
+	counts := CharacterCounts(strs)
 	return CharacterProbabilitiesFromCounts(counts)
 }

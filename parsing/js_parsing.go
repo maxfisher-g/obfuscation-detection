@@ -83,7 +83,7 @@ func ParseJS(parserPath string, filePath string, sourceString string, printJson 
 		switch element.SymbolType {
 		case "Identifier":
 			symbolSubtype := checkIdentifierType(element.SymbolSubtype)
-			if symbolSubtype == other || symbolSubtype == unknown {
+			if symbolSubtype == Other || symbolSubtype == Unknown {
 				break
 			}
 			result.Identifiers = append(result.Identifiers, ParsedIdentifier{
