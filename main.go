@@ -9,18 +9,6 @@ import (
 	"strings"
 )
 
-// TODO
-//  entropy of identifier names
-//  string literal analysis
-//  analysis of numeric arrays (entropy)
-
-func printProbabilityMap(m map[rune]float64) {
-	mapStrings := utils.TransformMap(m, func(k rune, v float64) string {
-		return fmt.Sprintf("%s: %.3f", string(k), v)
-	})
-	println(strings.Join(mapStrings, ", "))
-}
-
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Printf("Usage: %s <filename.js>\n", os.Args[0])
@@ -29,9 +17,12 @@ func main() {
 
 	filePath := os.Args[1]
 
-	//TestBabelParsing(filePath)
-	//return
+	//parsing.RunExampleParsing(filePath)
 
+	runExampleAnalysis(filePath)
+}
+
+func runExampleAnalysis(filePath string) {
 	data, err := parsing.ParseJS(filePath, false)
 	if err != nil && data == nil {
 		fmt.Printf("Error occured while extracting strings: %v\n", err)
@@ -45,7 +36,6 @@ func main() {
 		case "string":
 			e.Strings = append(e.Strings, d.Value.(string))
 			e.RawLiterals = append(e.RawLiterals, d.RawValue)
-			break
 		case "float64":
 		case "bool":
 		default:
@@ -75,7 +65,7 @@ func main() {
 		characterProbs := stringentropy.CharacterProbabilities(identifierNames)
 
 		println("Character probabilities")
-		printProbabilityMap(*characterProbs)
+		utils.PrintProbabilityMap(*characterProbs)
 		println()
 
 		for _, ident := range data.Identifiers {
