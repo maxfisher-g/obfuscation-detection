@@ -2,6 +2,7 @@ package stringentropy
 
 import (
 	"math"
+	"obfuscation-detection/utils"
 	"testing"
 )
 
@@ -23,7 +24,7 @@ func TestStringEntropy(t *testing.T) {
 	}
 	for index, test := range testCases {
 		actual := CalculateEntropy(test.s, nil)
-		if math.Abs(test.expected-actual) > tolerance {
+		if !utils.FloatEquals(test.expected, actual, tolerance) {
 			t.Errorf("Test case %d failed (str: %s, expected: %f, actual: %f\n",
 				index+1, test.s, test.expected, actual)
 		}
@@ -33,7 +34,7 @@ func TestStringEntropy(t *testing.T) {
 func TestStringEntropyRatio(t *testing.T) {
 	tolerance := 1e-9
 	testCases := []entropyTestCase{
-		{"", 1},
+		{"", 0},
 		{"a", 1},
 		{"abc", 1},
 		{"abcdefghij", 1},
@@ -43,7 +44,7 @@ func TestStringEntropyRatio(t *testing.T) {
 	}
 	for index, test := range testCases {
 		actual := CalculateNormalisedEntropy(test.s, nil)
-		if math.Abs(test.expected-actual) > tolerance {
+		if !utils.FloatEquals(test.expected, actual, tolerance) {
 			t.Errorf("Test case %d failed (str: %s, expected: %f, actual: %f\n",
 				index+1, test.s, test.expected, actual)
 		}
@@ -96,7 +97,7 @@ func TestCharacterProbabilities(t *testing.T) {
 
 	for char, expectedProb := range probsExpected {
 		actualProb := (*probsActual)[char]
-		if math.Abs(expectedProb-actualProb) > tolerance {
+		if !utils.FloatEquals(expectedProb, actualProb, tolerance) {
 			t.Errorf("Incorrect prob for character '%s' (%d): expected %.2f, actual %.2f",
 				string(char), char, expectedProb, actualProb)
 		}
