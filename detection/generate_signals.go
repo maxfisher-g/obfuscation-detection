@@ -16,8 +16,6 @@ func getStrings(data *parsing.ParseResult) []string {
 			extractedStrings = append(extractedStrings, d.Value.(string))
 		case "float64":
 		case "bool":
-		default:
-			// do nothing
 		}
 	}
 	return extractedStrings
@@ -31,10 +29,11 @@ func getIdentifierNames(data *parsing.ParseResult) []string {
 	return identifierNames
 }
 
-// Returns
-// Stats summary of string lengths
-// Stats summary of string entropies
-// Entropy of all symbols concatentated together
+// characterAnalysis
+// Performs analysis on a collection of string symbols, returning:
+// - Stats summary of symbol (string) lengths
+// - Stats summary of symbol (string) entropies
+// - Entropy of all symbols concatenated together
 func characterAnalysis(symbols []string) (
 	lengthSummary stats.SampleStatistics,
 	entropySummary stats.SampleStatistics,
@@ -57,9 +56,13 @@ func characterAnalysis(symbols []string) (
 }
 
 // GenerateSignals
-// Generates some data from parsing the given source file or string and prints it out
+// Generates some data from parsing the given input (source file or raw source string).
+// The input is assumed to be valid JavaScript source
 // If jsSourceFile is empty, the string will be parsed.
-// Currently assumes the input is a valid JavaScript source file
+//
+// Current signals:
+//   - Analysis of string literals
+//   - Analysis of identifiers (e.g. variable, function, and class names, loop labels)
 //
 // TODO Planned signals
 //   - analysis of numeric arrays (entropy)
