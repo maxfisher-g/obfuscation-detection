@@ -55,7 +55,6 @@ func ParseJS(filePath string, printJson bool) (*ParseResult, error) {
 				Name: element.Data.(string),
 				Pos:  TextPosition{element.Pos[0], element.Pos[1]},
 			})
-			break
 		case "Literal":
 			result.Literals = append(result.Literals, ParsedLiteral[any]{
 				Type:     fmt.Sprintf("%T", element.Data),
@@ -64,7 +63,6 @@ func ParseJS(filePath string, printJson bool) (*ParseResult, error) {
 				InArray:  element.Array,
 				Pos:      TextPosition{element.Pos[0], element.Pos[1]},
 			})
-			break
 		default:
 			panic(fmt.Errorf("unknown element type for parsed symbol: %s", element.SymbolType))
 		}
