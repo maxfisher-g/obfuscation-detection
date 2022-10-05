@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-// BabelJSONElement
-// Interfaces with output of babel-parser.js
-type BabelJSONElement struct {
+// ParserOutputElement
+// Output JSON format of JS parser
+type ParserOutputElement struct {
 	SymbolType    string         `json:"type"`
 	SymbolSubtype string         `json:"subtype"`
 	Data          any            `json:"data"`
@@ -18,18 +18,54 @@ type BabelJSONElement struct {
 	Extra         map[string]any `json:"extra"`
 }
 
-func ParseJS(filePath string, printJson bool) (*ParseResult, error) {
-	cmd := exec.Command("./parsing/babel-parser.js", filePath)
-	out, err := cmd.Output()
+// if sourcePath is empty, sourceString will be parsed as JS code
+func runParser(parserPath, jsFilePath, jsSource string) (string, error) {
+	var out []byte
+	var err error
+	if len(jsFilePath) > 0 {
+		cmd := exec.Command(parserPath, jsFilePath)
+		out, err = cmd.Output()
+	} else {
+		cmd := exec.Command(parserPath)
+		pipe, err := cmd.StdinPipe()
+		if err == nil {
+			var bytesWritten int
+			//fmt.Printf("Writing %s\n", jsSource)
+			bytesWritten, err = pipe.Write([]byte(jsSource))
+			if err == nil && bytesWritten != len(jsSource) {
+				// couldn't write all data
+				err = fmt.Errorf("failed to pipe source string to parser (%d of %d bytes written)",
+					bytesWritten, len(jsSource))
+			}
+			//fmt.Printf("Wrote %d bytes\n", bytesWritten)
+			err = pipe.Close()
+		}
+		if err == nil {
+			out, err = cmd.Output()
+		}
+	}
+	if err == nil {
+		//fmt.Printf("Returned output %s\n", string(out))
+		return string(out), nil
+	} else {
+		return "", err
+	}
+
+}
+
+// ParseJS
+// if sourcePath is empty, sourceString will be parsed as JS code
+func ParseJS(parserPath string, filePath string, sourceString string, printJson bool) (*ParseResult, error) {
+	parserOutput, err := runParser(parserPath, filePath, sourceString)
 	if err != nil {
 		return nil, err
 	}
 
-	jsonString := string(out)
+	jsonString := parserOutput
 	println("Decoding JSON")
 	// parse JSON to get results as Go struct
 	decoder := json.NewDecoder(strings.NewReader(jsonString))
-	var storage []BabelJSONElement
+	var storage []ParserOutputElement
 	err = decoder.Decode(&storage)
 	if err != nil {
 		println("Failed on decoding the following JSON")
@@ -70,8 +106,8 @@ func ParseJS(filePath string, printJson bool) (*ParseResult, error) {
 	return &result, nil
 }
 
-func RunExampleParsing(filePath string) {
-	parseResult, err := ParseJS(filePath, true)
+func RunExampleParsing(jsParserPath, jsFilePath string) {
+	parseResult, err := ParseJS(jsParserPath, jsFilePath, "", true)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 		if ee, ok := err.(*exec.ExitError); ok {

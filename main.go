@@ -9,21 +9,52 @@ import (
 	"strings"
 )
 
+const defaultParserPath = "./parsing/babel-parser.js"
+
+func getJsParserPath() (string, error) {
+	customParserPath := os.Getenv("JS_PARSER")
+
+	if len(customParserPath) > 0 {
+		if _, err := os.Stat(customParserPath); err != nil {
+			return "", fmt.Errorf("could not locate JS parser defined by environment variable (%v)", err)
+		} else {
+			return customParserPath, nil
+		}
+	} else {
+		if _, err := os.Stat(defaultParserPath); err != nil {
+			return "", fmt.Errorf("could not locate JS parser at default path %s (%v)", defaultParserPath, err)
+		} else {
+			return defaultParserPath, nil
+		}
+	}
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Printf("Usage: %s <filename.js>\n", os.Args[0])
 		return
 	}
 
+	parserPath, err := getJsParserPath()
+
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+
 	filePath := os.Args[1]
+	printJson := true
+	sourceString := "" // "var a = hello;"
+	if len(sourceString) > 0 {
+		runExampleAnalysis(parserPath, "", sourceString, printJson)
+	} else {
+		runExampleAnalysis(parserPath, filePath, "", printJson)
+	}
 
-	//parsing.RunExampleParsing(filePath)
-
-	runExampleAnalysis(filePath)
 }
 
-func runExampleAnalysis(filePath string) {
-	data, err := parsing.ParseJS(filePath, false)
+func runExampleAnalysis(parserPath, jsFilePath, jsSource string, printJson bool) {
+	data, err := parsing.ParseJS(parserPath, jsFilePath, jsSource, printJson)
 	if err != nil && data == nil {
 		fmt.Printf("Error occured while extracting strings: %v\n", err)
 		return
@@ -44,20 +75,20 @@ func runExampleAnalysis(filePath string) {
 	}
 
 	if len(e.Strings) > 0 {
-		fmt.Printf("Found %d strings in: %s\n", len(e.Strings), filePath)
+		fmt.Printf("Found %d strings in: %s\n", len(e.Strings), jsFilePath)
 		for _, s := range e.Strings {
 			entropy := stringentropy.CalculateEntropy(s, nil)
 			entropyNormalised := stringentropy.CalculateNormalisedEntropy(s, nil)
 			fmt.Printf("'%s' - entropy %.2f [%.1f%%]\n", s, entropy, 100*entropyNormalised)
 		}
 	} else {
-		fmt.Println("Unable to extract any strings from ", filePath)
+		fmt.Println("Unable to extract any string literals")
 	}
 
 	println()
 
 	if len(data.Identifiers) > 0 {
-		fmt.Printf("Found %d identifiers in: %s\n", len(data.Identifiers), filePath)
+		fmt.Printf("Found %d identifiers in: %s\n", len(data.Identifiers), jsFilePath)
 		identifierNames := make([]string, len(data.Identifiers))
 		for _, ident := range data.Identifiers {
 			identifierNames = append(identifierNames, ident.Name)
@@ -84,6 +115,6 @@ func runExampleAnalysis(filePath string) {
 		fmt.Printf("Combined entropy: %.2f [%.1f%%]\n", combinedEntropy, combinedNormalisedEntropy)
 
 	} else {
-		fmt.Println("Unable to extract any identifiers from ", filePath)
+		fmt.Println("Unable to extract any identifiers")
 	}
 }

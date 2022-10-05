@@ -2,33 +2,8 @@ package stats
 
 import (
 	"math"
-	"obfuscation-detection/utils"
 	"testing"
 )
-
-func flatten(s SampleStatistics) (data [8]float64) {
-	data[0] = s.Mean
-	data[1] = s.Variance
-	data[2] = s.Skewness
-	for i := 0; i < 5; i++ {
-		data[i+3] = s.Quartiles[i]
-	}
-	return
-}
-
-func areSummariesEqual(s1, s2 SampleStatistics, absTol float64) bool {
-	if s1.Size != s2.Size {
-		return false
-	}
-	s1Data := flatten(s1)
-	s2Data := flatten(s2)
-	for i := 0; i < len(s1Data); i++ {
-		if !utils.FloatEquals(s1Data[i], s2Data[i], absTol) {
-			return false
-		}
-	}
-	return true
-}
 
 func TestSummary(t *testing.T) {
 	data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -40,7 +15,7 @@ func TestSummary(t *testing.T) {
 		Skewness:  0,
 		Quartiles: [5]float64{1, 3, 5, 7, 9},
 	}
-	if !areSummariesEqual(actual, expected, 1e-4) {
+	if !actual.Equals(expected, 1e-4) {
 		t.Errorf("Expected summary: %v\nactual summary %v\n", expected, actual)
 	}
 
@@ -56,7 +31,7 @@ func TestSummary2(t *testing.T) {
 		Skewness:  -1.0634150819204964,
 		Quartiles: [5]float64{6, 15, 40, 43, 49},
 	}
-	if !areSummariesEqual(actual, expected, 1e-4) {
+	if !actual.Equals(expected, 1e-4) {
 		t.Errorf("Expected summary: %v\nactual summary %v\n", expected, actual)
 	}
 }
@@ -71,7 +46,7 @@ func TestSummary3(t *testing.T) {
 		Skewness:  -1.039599522561593,
 		Quartiles: [5]float64{7, 15, 37.5, 40, 41},
 	}
-	if !areSummariesEqual(actual, expected, 1e-4) {
+	if !actual.Equals(expected, 1e-4) {
 		t.Errorf("Expected summary: %v\nactual summary: %v\n", expected, actual)
 	}
 }
@@ -87,7 +62,7 @@ func TestSummary4(t *testing.T) {
 		Skewness:  nan,
 		Quartiles: [5]float64{nan, nan, nan, nan, nan},
 	}
-	if !areSummariesEqual(actual, expected, 1e-4) {
+	if !actual.Equals(expected, 1e-4) {
 		t.Errorf("Expected summary: %v\nactual summary %v\n", expected, actual)
 	}
 }
@@ -103,7 +78,7 @@ func TestSummary5(t *testing.T) {
 		Skewness:  nan,
 		Quartiles: [5]float64{1.5, 1.5, 1.5, 1.5, 1.5},
 	}
-	if !areSummariesEqual(actual, expected, 1e-4) {
+	if !actual.Equals(expected, 1e-4) {
 		t.Errorf("Expected summary: %v\nactual summary %v\n", expected, actual)
 	}
 }
@@ -119,7 +94,7 @@ func TestSummary6(t *testing.T) {
 		Skewness:  nan,
 		Quartiles: [5]float64{1.5, 1.5, 2.0, 2.5, 2.5},
 	}
-	if !areSummariesEqual(actual, expected, 1e-4) {
+	if !actual.Equals(expected, 1e-4) {
 		t.Errorf("Expected summary: %v\nactual summary %v\n", expected, actual)
 	}
 }
@@ -134,7 +109,7 @@ func TestSummary7(t *testing.T) {
 		Skewness:  0,
 		Quartiles: [5]float64{-12.5, -12.5, 0.0, 12.5, 12.5},
 	}
-	if !areSummariesEqual(actual, expected, 1e-4) {
+	if !actual.Equals(expected, 1e-4) {
 		t.Errorf("Expected summary: %v\nactual summary %v\n", expected, actual)
 	}
 }

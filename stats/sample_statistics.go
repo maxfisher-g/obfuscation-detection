@@ -3,6 +3,7 @@ package stats
 import (
 	"fmt"
 	"math"
+	"obfuscation-detection/utils"
 	"sort"
 )
 
@@ -19,6 +20,30 @@ func (s SampleStatistics) Q1() float64     { return s.Quartiles[1] }
 func (s SampleStatistics) Median() float64 { return s.Quartiles[2] }
 func (s SampleStatistics) Q3() float64     { return s.Quartiles[3] }
 func (s SampleStatistics) Max() float64    { return s.Quartiles[4] }
+
+func (s SampleStatistics) FloatData() (data [8]float64) {
+	data[0] = s.Mean
+	data[1] = s.Variance
+	data[2] = s.Skewness
+	for i := 0; i < 5; i++ {
+		data[i+3] = s.Quartiles[i]
+	}
+	return
+}
+
+func (s SampleStatistics) Equals(other SampleStatistics, absTol float64) bool {
+	if s.Size != other.Size {
+		return false
+	}
+	thisData := s.FloatData()
+	otherData := other.FloatData()
+	for i := 0; i < len(thisData); i++ {
+		if !utils.FloatEquals(thisData[i], otherData[i], absTol) {
+			return false
+		}
+	}
+	return true
+}
 
 // mean
 // sample mean

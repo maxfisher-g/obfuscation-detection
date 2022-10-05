@@ -25,8 +25,8 @@ func getStrings(data *parsing.ParseResult) []string {
 
 func getIdentifierNames(data *parsing.ParseResult) []string {
 	identifierNames := make([]string, len(data.Identifiers))
-	for _, ident := range data.Identifiers {
-		identifierNames = append(identifierNames, ident.Name)
+	for i, ident := range data.Identifiers {
+		identifierNames[i] = ident.Name
 	}
 	return identifierNames
 }
@@ -57,13 +57,14 @@ func characterAnalysis(symbols []string) (
 }
 
 // GenerateSignals
-// Generates some data from parsing the given source file and prints it out
+// Generates some data from parsing the given source file or string and prints it out
+// If jsSourceFile is empty, the string will be parsed.
 // Currently assumes the input is a valid JavaScript source file
 //
 // TODO Planned signals
 //   - analysis of numeric arrays (entropy)
-func GenerateSignals(jsSourceFile string) (*Signals, error) {
-	data, err := parsing.ParseJS(jsSourceFile, false)
+func GenerateSignals(jsParserPath, jsSourceFile string, jsSourceString string) (*Signals, error) {
+	data, err := parsing.ParseJS(jsParserPath, jsSourceFile, jsSourceString, false)
 	if err != nil && data == nil {
 		fmt.Printf("Error occured while reading %s: %v\n", jsSourceFile, err)
 		return nil, err
@@ -73,6 +74,9 @@ func GenerateSignals(jsSourceFile string) (*Signals, error) {
 
 	stringLiterals := getStrings(data)
 	identifierNames := getIdentifierNames(data)
+
+	//fmt.Printf("String literals (len=%d): %v\n", len(stringLiterals), stringLiterals)
+	//fmt.Printf("Identifier names (len=%d): %v\n", len(identifierNames), identifierNames)
 
 	signals.StringLengthSummary, signals.StringEntropySummary, signals.CombinedStringEntropy =
 		characterAnalysis(stringLiterals)
